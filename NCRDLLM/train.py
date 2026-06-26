@@ -43,8 +43,7 @@ from visualize import (
     plot_pr_curve,
     plot_cv_roc_curves,
     plot_cv_pr_curves,
-    plot_metrics_comparison,
-    plot_modality_tsne_features
+    plot_metrics_comparison
 )
 
 # ========== 🆕 损失函数定义 ==========
@@ -719,19 +718,7 @@ def main():
     plot_cv_roc_curves(fold_data_list, os.path.join(experiment_dir, 'cv_roc_curves.png'))
     plot_cv_pr_curves(fold_data_list, os.path.join(experiment_dir, 'cv_pr_curves.png'))
     plot_metrics_comparison(fold_results, os.path.join(experiment_dir, 'metrics_comparison.png'))
-    
-    # 🆕 11. 绘制t-SNE可视化
-    if config.SAVE_FEATURES and any(fd is not None for fd in fold_feature_data_list):
-        print("\n" + "="*60)
-        print("🎨 绘制t-SNE特征可视化")
-        print("="*60)
-        
-        for fold, feature_data in enumerate(fold_feature_data_list):
-            if feature_data is not None:
-                fold_dir = os.path.join(experiment_dir, f'fold_{fold}')
-                os.makedirs(fold_dir, exist_ok=True)
-                plot_modality_tsne_features(feature_data, fold, fold_dir, config)
-    
+
     # 12. 完成
     print("\n" + "="*70)
     print("✅ 训练完成！")
@@ -819,7 +806,6 @@ def main():
     if config.SAVE_FEATURES:
         print(f"   - 融合特征: all_rna_fused_features.csv, all_drug_fused_features.csv")
         print(f"   - 原始特征: all_rna_raw_features.csv, all_drug_raw_features.csv")
-        print(f"   - t-SNE可视化: fold_*/tsne_*.png")
     else:
         print(f"   - 融合特征: 未保存（使用 --no_save_features 禁用）")
         print(f"   - 原始特征: 未保存（使用 --no_save_features 禁用）")
