@@ -417,7 +417,7 @@ class MultimodalLLM(nn.Module):
                               rna_struct_features=None, drug_struct_features=None,
                               rna_disease_features=None, drug_disease_features=None):
         """
-        获取各模态的LLM处理后特征(用于t-SNE可视化)
+        获取各模态的LLM处理后特征
         
         Returns:
             dict: {

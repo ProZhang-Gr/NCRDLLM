@@ -306,7 +306,7 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
     Returns:
         metrics: dict, 评估指标
         fold_data: dict, 包含y_true和y_prob,用于绘制曲线
-        feature_data: dict, 包含各模态特征和标签,用于t-SNE可视化
+        feature_data: dict, 包含各模态特征和标签
     """
     model.eval()
     
@@ -320,7 +320,7 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
     all_rna_fused = []
     all_drug_fused = []
     
-    # 🆕 用于存储各模态特征(用于t-SNE可视化)
+    # 用于存储各模态特征
     all_modality_features = {
         'rna_seq': [],
         'rna_struct': [],
@@ -379,7 +379,7 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
             all_rna_ids.extend(batch['rna_id'])
             all_drug_ids.extend(batch['drug_id'])
             
-            # 🆕 提取各模态特征(用于t-SNE可视化)
+            # 提取各模态特征
             if extract_features and config.SAVE_FEATURES:
                 modality_feats = model.get_modality_features(**feature_dict)
                 
@@ -426,7 +426,7 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
             fold, save_dir, config
         )
     
-    # 🆕 整理特征数据用于t-SNE可视化
+    # 整理特征数据
     feature_data = None
     if extract_features and config.SAVE_FEATURES:
         feature_data = {}
@@ -479,7 +479,7 @@ def train_one_fold(fold, train_dataset, val_dataset, experiment_dir, config):
     Returns:
         best_metrics: dict, 最佳验证指标
         best_fold_data: dict, 最佳验证数据(用于绘制曲线)
-        best_feature_data: dict, 最佳特征数据(用于t-SNE可视化)
+        best_feature_data: dict, 最佳特征数据
     """
     print(f"\n{'='*60}")
     print(f"🔄 训练 Fold {fold}")
