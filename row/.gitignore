@@ -1,0 +1,15 @@
+# 仅保留预处理脚本（供学习），原始数据与中间结果体积过大，不纳入仓库。
+# Only the preprocessing scripts are tracked (for learning). Raw / intermediate
+# data files are excluded because they are too large for GitHub.
+
+# 默认忽略一切 / ignore everything by default
+*
+
+# 但保留目录结构与脚本 / but keep directory structure and scripts
+!*/
+!*.py
+!*.md
+!.gitignore
+
+# 始终排除 IDE 配置 / always exclude IDE configs
+.idea/

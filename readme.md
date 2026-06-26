@@ -1,5 +1,7 @@
 # NCRDLLM
 
+**English** | [简体中文](README.zh-CN.md)
+
 ## Welcome to NCRDLLM
 
 NCRDLLM (Prediction of ncRNA–Drug Response Associations Based on a Large Language Model) is a unified
@@ -41,6 +43,7 @@ The flow chart of NCRDLLM is as follows:
 │   ├── export_utils.py                         # Feature / prediction / weight export
 │   ├── visualize.py                            # ROC / PR / t-SNE plotting
 │   └── train.py                                # Training code (5-fold cross-validation)
+├── row                                         # Data-preprocessing scripts (for reference only; see below)
 └── README.md
 ```
 
@@ -122,10 +125,19 @@ A few friendly notes to help you get it running the first time:
 
 Everything else works out of the box — happy experimenting! 🎉
 
+## Data Preprocessing (for reference)
+
+The `row/` directory contains the **data-preprocessing scripts** used to build the multimodal features,
+shared **for learning and reference only**. The raw and intermediate data files are very large and are
+**not** included in the repository; running the final model does **not** require this directory — the
+ready-to-use feature files are already provided under `NCRDLLM/data/`.
+
 ## Citation
 
 If you use our tool and code, please cite our article and star the project to show your support, thank you!
 
 Citation format:
 
-Journal of Chemical Information and Modeling, DOI: 10.1021/acs.jcim.5c03011.
+Zihan Zhang, Yuchen Zhang\*, "NCRDLLM: Predicting ncRNA-Drug Response Associations via Multimodal Feature
+Fusion and Large Language Models," *Journal of Chemical Information and Modeling*, 2026, online.
+DOI: 10.1021/acs.jcim.5c03011. (SCI, JCR Q1, IF: 5.30)
