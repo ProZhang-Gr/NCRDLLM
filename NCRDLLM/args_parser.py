@@ -51,6 +51,10 @@ def parse_args():
     parser.add_argument('--lora_alpha', type=int, default=16,
                        help='LoRA alpha')
     
+    # ========== Token顺序参数 ========== 🆕
+    parser.add_argument('--token_order', type=int, default=0,
+                       help='Token顺序ID (0-19为预定义排列, -1为随机)')
+    
     # ========== 优化器和损失函数 ========== 🆕
     parser.add_argument('--optimizer', type=str, 
                        choices=['adamw', 'adam', 'sgd', 'rmsprop'],
@@ -68,6 +72,12 @@ def parse_args():
                        help='Focal loss gamma参数')
     parser.add_argument('--label_smoothing', type=float, default=0.1,
                        help='Label smoothing参数')
+    
+    # ========== 实验参数 ========== 🆕
+    parser.add_argument('--jaccard_threshold', type=float, default=0.9,
+                       help='Jaccard相似度阈值（疾病背景控制实验，范围0-1）')
+    parser.add_argument('--negative_ratio', type=int, default=1,
+                       help='负样本比例（负样本数:正样本数，如1表示1:1，2表示2:1）')
     
     # ========== 其他 ==========
     parser.add_argument('--seed', type=int, default=42,
@@ -114,6 +124,9 @@ def parse_args():
     config.LORA_R = args.lora_r
     config.LORA_ALPHA = args.lora_alpha
     
+    # 🆕 Token顺序
+    config.TOKEN_ORDER_ID = args.token_order
+    
     # 其他
     config.RANDOM_SEED = args.seed
     config.NUM_WORKERS = args.num_workers
@@ -124,6 +137,10 @@ def parse_args():
     config.FOCAL_ALPHA = args.focal_alpha
     config.FOCAL_GAMMA = args.focal_gamma
     config.LABEL_SMOOTHING = args.label_smoothing
+    
+    # 🆕 实验参数（疾病背景控制 & 不平衡采样）
+    config.JACCARD_THRESHOLD = args.jaccard_threshold
+    config.NEGATIVE_RATIO = args.negative_ratio
     
     return config
 

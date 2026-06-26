@@ -23,9 +23,11 @@ class Config:
     DRUG_GRAPH_FEATURE_PATH = f"{DATA_DIR}/ALLdrug-graph-features.xlsx"
     DRUG_ECFP_FEATURE_PATH = f"{DATA_DIR}/ALLdrug-ECFP-features.xlsx"
     
-    # 🆕 疾病关联路径
-    RNA_DISEASE_FEATURE_PATH = f"{DATA_DIR}/onehot_RNA_matrix.xlsx"  # 🆕 改名
-    DRUG_DISEASE_FEATURE_PATH = f"{DATA_DIR}/onehot_Drug_matrix.xlsx"
+    # 🆕 疾病关联路径（归一化后的语义相似性矩阵）
+    # 根据数据集类型动态选择对应的归一化矩阵
+    _rna_type = DATASET_NAME.split('-')[0]  # 提取 'miRNA', 'lncRNA', 'circRNA'
+    RNA_DISEASE_FEATURE_PATH = f"{DATA_DIR}/semantic_{_rna_type}_matrix_normalized.xlsx"
+    DRUG_DISEASE_FEATURE_PATH = f"{DATA_DIR}/semantic_Drug_matrix_normalized.xlsx"
 
     # 正样本对路径
     POSITIVE_PAIRS_PATH = f"{DATA_DIR}/responsed_RNA-drug.xlsx"  # 🆕 改名
@@ -38,11 +40,23 @@ class Config:
     NEGATIVE_RATIO = 1
     RANDOM_SEED = 42
     
+    # 🆕 负采样配置（Jaccard相似性过滤）
+    JACCARD_THRESHOLD = 0.9  # Jaccard相似度阈值，超过此值拒绝作为负样本
+    MAX_SAMPLING_ATTEMPTS = 100  # 单个负样本的最大尝试次数
+    
+    # 🆕 Onehot矩阵路径（用于计算Jaccard相似性，不用于特征）
+    RNA_ONEHOT_MATRIX_PATH = f"{DATA_DIR}/onehot_RNA_matrix.xlsx"
+    DRUG_ONEHOT_MATRIX_PATH = f"{DATA_DIR}/onehot_Drug_matrix.xlsx"
+    
     # ========== 模型配置 ==========
     MODEL_TYPE = 'llm'  # 'baseline' 或 'llm'
     
     # 🆕 Baseline版本配置（仅当MODEL_TYPE='baseline'时有效）
     BASELINE_VERSION = 'weak'  # 'strong' / 'medium' / 'weak' / 'simple'
+    
+    # 🆕 Token顺序配置（用于位置编码消融实验）
+    # 0: 默认顺序, 1-19: 代表性排列, -1: 随机顺序
+    TOKEN_ORDER_ID = 0
     
     # 🆕 模态开关配置（用于消融实验）
     USE_RNA_SEQ = True          # RNA序列embedding
@@ -144,8 +158,16 @@ class Config:
         self.RNA_STRUCT_FEATURE_PATH = f"{self.DATA_DIR}/secondary_feature_RNA.xlsx"
         self.DRUG_GRAPH_FEATURE_PATH = f"{self.DATA_DIR}/ALLdrug-graph-features.xlsx"
         self.DRUG_ECFP_FEATURE_PATH = f"{self.DATA_DIR}/ALLdrug-ECFP-features.xlsx"
-        self.RNA_DISEASE_FEATURE_PATH = f"{self.DATA_DIR}/onehot_RNA_matrix.xlsx"
-        self.DRUG_DISEASE_FEATURE_PATH = f"{self.DATA_DIR}/onehot_Drug_matrix.xlsx"
+        
+        # 🆕 归一化疾病关联矩阵（用于特征）
+        _rna_type = self.DATASET_NAME.split('-')[0]
+        self.RNA_DISEASE_FEATURE_PATH = f"{self.DATA_DIR}/semantic_{_rna_type}_matrix_normalized.xlsx"
+        self.DRUG_DISEASE_FEATURE_PATH = f"{self.DATA_DIR}/semantic_Drug_matrix_normalized.xlsx"
+        
+        # 🆕 Onehot矩阵（用于Jaccard相似性计算）
+        self.RNA_ONEHOT_MATRIX_PATH = f"{self.DATA_DIR}/onehot_RNA_matrix.xlsx"
+        self.DRUG_ONEHOT_MATRIX_PATH = f"{self.DATA_DIR}/onehot_Drug_matrix.xlsx"
+        
         self.POSITIVE_PAIRS_PATH = f"{self.DATA_DIR}/responsed_RNA-drug.xlsx"
         self.SPLITS_DIR = f"{self.DATA_DIR}/splits/{self.DATASET_NAME}"
     
@@ -165,6 +187,62 @@ class Config:
         if self.USE_DRUG_DISEASE:
             modalities.append('DRUG_DISEASE')
         return modalities
+    
+    def get_token_order(self):
+        """
+        🆕 根据TOKEN_ORDER_ID返回token顺序列表
+        
+        Returns:
+            list of str: 模态名称的顺序列表
+        """
+        # 定义20种代表性排列
+        token_orders = {
+            # 0. 默认顺序 (原始)
+            0: ['RNA_SEQ', 'RNA_STRUCT', 'RNA_DISEASE', 'DRUG_SEQ', 'DRUG_STRUCT', 'DRUG_DISEASE'],
+            
+            # 1. 完全反转
+            1: ['DRUG_DISEASE', 'DRUG_STRUCT', 'DRUG_SEQ', 'RNA_DISEASE', 'RNA_STRUCT', 'RNA_SEQ'],
+            
+            # 2-3. RNA-Drug交替
+            2: ['RNA_SEQ', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_STRUCT', 'RNA_DISEASE', 'DRUG_DISEASE'],
+            3: ['DRUG_SEQ', 'RNA_SEQ', 'DRUG_STRUCT', 'RNA_STRUCT', 'DRUG_DISEASE', 'RNA_DISEASE'],
+            
+            # 4-6. 特征类型优先
+            4: ['RNA_SEQ', 'DRUG_SEQ', 'RNA_STRUCT', 'RNA_DISEASE', 'DRUG_STRUCT', 'DRUG_DISEASE'],  # 序列优先
+            5: ['RNA_STRUCT', 'DRUG_STRUCT', 'RNA_SEQ', 'DRUG_SEQ', 'RNA_DISEASE', 'DRUG_DISEASE'],  # 结构优先
+            6: ['RNA_DISEASE', 'DRUG_DISEASE', 'RNA_SEQ', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_STRUCT'],  # 疾病优先
+            
+            # 7-9. Drug在前
+            7: ['DRUG_SEQ', 'DRUG_STRUCT', 'DRUG_DISEASE', 'RNA_SEQ', 'RNA_STRUCT', 'RNA_DISEASE'],
+            8: ['DRUG_STRUCT', 'DRUG_SEQ', 'DRUG_DISEASE', 'RNA_STRUCT', 'RNA_SEQ', 'RNA_DISEASE'],
+            9: ['DRUG_DISEASE', 'DRUG_SEQ', 'DRUG_STRUCT', 'RNA_DISEASE', 'RNA_SEQ', 'RNA_STRUCT'],
+            
+            # 10-12. 混合交错
+            10: ['RNA_SEQ', 'RNA_STRUCT', 'DRUG_SEQ', 'DRUG_STRUCT', 'RNA_DISEASE', 'DRUG_DISEASE'],
+            11: ['RNA_SEQ', 'DRUG_SEQ', 'RNA_STRUCT', 'RNA_DISEASE', 'DRUG_STRUCT', 'DRUG_DISEASE'],
+            12: ['RNA_DISEASE', 'RNA_SEQ', 'DRUG_DISEASE', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_STRUCT'],
+            
+            # 13-14. 随机示例
+            13: ['DRUG_STRUCT', 'RNA_SEQ', 'RNA_DISEASE', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_DISEASE'],
+            14: ['RNA_STRUCT', 'DRUG_DISEASE', 'RNA_SEQ', 'DRUG_STRUCT', 'DRUG_SEQ', 'RNA_DISEASE'],
+            
+            # 15-19. 更多变体
+            15: ['RNA_SEQ', 'DRUG_STRUCT', 'RNA_DISEASE', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_DISEASE'],
+            16: ['DRUG_SEQ', 'RNA_STRUCT', 'DRUG_DISEASE', 'RNA_SEQ', 'DRUG_STRUCT', 'RNA_DISEASE'],
+            17: ['RNA_DISEASE', 'DRUG_SEQ', 'RNA_STRUCT', 'DRUG_DISEASE', 'RNA_SEQ', 'DRUG_STRUCT'],
+            18: ['DRUG_DISEASE', 'RNA_STRUCT', 'DRUG_SEQ', 'RNA_DISEASE', 'DRUG_STRUCT', 'RNA_SEQ'],
+            19: ['RNA_STRUCT', 'DRUG_SEQ', 'RNA_DISEASE', 'DRUG_STRUCT', 'RNA_SEQ', 'DRUG_DISEASE'],
+        }
+        
+        if self.TOKEN_ORDER_ID == -1:
+            # 随机顺序
+            import random
+            order = token_orders[0].copy()
+            random.shuffle(order)
+            return order
+        else:
+            return token_orders.get(self.TOKEN_ORDER_ID, token_orders[0])
+    
     
     def get_total_input_dim(self):
         """计算总输入维度（用于baseline）"""
@@ -202,6 +280,8 @@ class Config:
                 config_str += f"   - LoRA Rank: {self.LORA_R}\n"
                 config_str += f"   - LoRA模块: {len(self.LORA_TARGET_MODULES)}个\n"
             config_str += f"   - 分类头方案: {self.POOLING_METHOD.upper()}\n"
+            config_str += f"   - Token顺序ID: {self.TOKEN_ORDER_ID}\n"
+            config_str += f"   - Token顺序: {' → '.join(self.get_token_order())}\n"
         
         config_str += f"\n⚙️  训练配置:\n"
         config_str += f"   - Batch Size: {self.BATCH_SIZE}\n"

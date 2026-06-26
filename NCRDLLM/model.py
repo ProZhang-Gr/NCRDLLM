@@ -360,8 +360,30 @@ class MultimodalLLM(nn.Module):
         Returns:
             processed: {token_id: [B, D]}
         """
-        # 构建input_ids和embeddings
-        token_ids = list(embeds_dict.keys())
+        # 🆕 根据配置的顺序排列token_ids
+        token_order_names = config.get_token_order()
+        
+        # 将token名称映射到token_id
+        name_to_id = {
+            'RNA_SEQ': self.rna_seq_token_id,
+            'RNA_STRUCT': self.rna_struct_token_id,
+            'RNA_DISEASE': self.rna_disease_token_id,
+            'DRUG_SEQ': self.drug_seq_token_id,
+            'DRUG_STRUCT': self.drug_struct_token_id,
+            'DRUG_DISEASE': self.drug_disease_token_id,
+        }
+        
+        # 按配置的顺序构建token_ids列表（只包含存在的token）
+        token_ids = []
+        for name in token_order_names:
+            token_id = name_to_id.get(name)
+            if token_id is not None and token_id in embeds_dict:
+                token_ids.append(token_id)
+        
+        # 如果使用CLS token，添加到最前面
+        if config.POOLING_METHOD == 'cls' and self.cls_token_id in embeds_dict:
+            token_ids.insert(0, self.cls_token_id)
+        
         seq_len = len(token_ids)
         
         input_ids = torch.tensor([token_ids] * batch_size, dtype=torch.long, device=device)

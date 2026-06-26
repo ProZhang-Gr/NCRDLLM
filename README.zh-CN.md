@@ -6,8 +6,8 @@
 
 NCRDLLM（基于大语言模型的 ncRNA–药物响应关联预测）是一个统一框架，用于预测三类非编码 RNA
 （circRNA、miRNA、lncRNA）与药物之间的关联。模型构建了三组多模态特征——由预训练基础模型 RNA-FM 与
-ChemBERTa 提取的序列特征、来自 RNA 二级结构图与药物指纹/图表示的结构特征、以及由疾病关联网络编码得到的
-关联特征——并通过适配器（adapter）模块将其映射到 **LLaMA-3.2-3B** 的隐空间，再用 **LoRA** 进行参数高效
+ChemBERTa 提取的序列特征、来自 RNA 二级结构图与药物指纹/图表示的结构特征、以及疾病**语义相似性**特征
+——并通过适配器（adapter）模块将其映射到 **LLaMA-3.2-3B** 的隐空间，再用 **LoRA** 进行参数高效
 微调。NCRDLLM 在 miRNA-drug、lncRNA-drug、circRNA-drug 三个数据集上分别取得 0.9636、0.9662、0.9616 的
 AUC-ROC。
 
@@ -23,11 +23,13 @@ NCRDLLM 的整体流程图如下：
 │   │   ├── miRNA-drug
 │   │   │   ├── Features_RNAFM_RNA_640D.xlsx    # RNA 序列特征 (640D)，ID 列：RNA_ID
 │   │   │   ├── secondary_feature_RNA.xlsx      # RNA 结构特征 (128D)，ID 列：RNA_ID
-│   │   │   ├── onehot_RNA_matrix.xlsx          # RNA 疾病关联特征 (1690D)，ID 列：RNA_ID
+│   │   │   ├── semantic_miRNA_matrix_normalized.xlsx  # RNA 疾病语义相似性特征 (1690D)，ID 列：RNA_ID
 │   │   │   ├── Features_ChemBERTa_Drug_768D.xlsx  # 药物序列特征 (768D)，ID 列：CID
 │   │   │   ├── ALLdrug-graph-features.xlsx     # 药物图特征 (512D)，ID 列：CID
 │   │   │   ├── ALLdrug-ECFP-features.xlsx      # 药物 ECFP 指纹 (512D)，ID 列：CID
-│   │   │   ├── onehot_Drug_matrix.xlsx         # 药物疾病关联特征 (1690D)，ID 列：CID
+│   │   │   ├── semantic_Drug_matrix_normalized.xlsx  # 药物疾病语义相似性特征 (1690D)，ID 列：CID
+│   │   │   ├── onehot_RNA_matrix.xlsx          # RNA-疾病 one-hot（仅用于 Jaccard 负采样）
+│   │   │   ├── onehot_Drug_matrix.xlsx         # 药物-疾病 one-hot（仅用于 Jaccard 负采样）
 │   │   │   ├── responsed_RNA-drug.xlsx         # ncRNA-药物正样本对，列：RNA_ID, CID
 │   │   │   └── splits                          # 自动生成的 5 折划分缓存 (.pkl)
 │   │   ├── lncRNA-drug                         # 文件结构同 miRNA-drug

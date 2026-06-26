@@ -8,7 +8,7 @@ NCRDLLM (Prediction of ncRNA–Drug Response Associations Based on a Large Langu
 framework for predicting associations between three types of non-coding RNA (circRNA, miRNA, lncRNA) and
 drugs. The model constructs three groups of multimodal features — sequence features from the pretrained
 foundation models RNA-FM and ChemBERTa, structural features from RNA secondary-structure graphs and drug
-fingerprint/graph representations, and association features from disease association networks — and maps
+fingerprint/graph representations, and disease **semantic-similarity** features — and maps
 them into the hidden space of **LLaMA-3.2-3B** through adapter modules, with **LoRA** used for
 parameter-efficient fine-tuning. NCRDLLM achieves AUC-ROC values of 0.9636, 0.9662 and 0.9616 on the
 miRNA-drug, lncRNA-drug, and circRNA-drug datasets, respectively.
@@ -25,11 +25,13 @@ The flow chart of NCRDLLM is as follows:
 │   │   ├── miRNA-drug
 │   │   │   ├── Features_RNAFM_RNA_640D.xlsx    # RNA sequence features (640D), id column: RNA_ID
 │   │   │   ├── secondary_feature_RNA.xlsx      # RNA structure features (128D), id column: RNA_ID
-│   │   │   ├── onehot_RNA_matrix.xlsx          # RNA disease-association features (1690D), id column: RNA_ID
+│   │   │   ├── semantic_miRNA_matrix_normalized.xlsx  # RNA disease semantic-similarity features (1690D), id column: RNA_ID
 │   │   │   ├── Features_ChemBERTa_Drug_768D.xlsx  # Drug sequence features (768D), id column: CID
 │   │   │   ├── ALLdrug-graph-features.xlsx     # Drug graph features (512D), id column: CID
 │   │   │   ├── ALLdrug-ECFP-features.xlsx      # Drug ECFP fingerprints (512D), id column: CID
-│   │   │   ├── onehot_Drug_matrix.xlsx         # Drug disease-association features (1690D), id column: CID
+│   │   │   ├── semantic_Drug_matrix_normalized.xlsx  # Drug disease semantic-similarity features (1690D), id column: CID
+│   │   │   ├── onehot_RNA_matrix.xlsx          # RNA-disease one-hot (used only for Jaccard negative sampling)
+│   │   │   ├── onehot_Drug_matrix.xlsx         # Drug-disease one-hot (used only for Jaccard negative sampling)
 │   │   │   ├── responsed_RNA-drug.xlsx         # Positive ncRNA-drug pairs, columns: RNA_ID, CID
 │   │   │   └── splits                          # Auto-generated 5-fold split cache (.pkl)
 │   │   ├── lncRNA-drug                         # Same file layout as miRNA-drug

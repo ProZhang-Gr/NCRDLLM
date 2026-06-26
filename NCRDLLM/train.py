@@ -1,5 +1,6 @@
 import os
 import sys
+import time  # 🆕 添加time模块用于计时
 import numpy as np
 import torch
 import torch.nn as nn
@@ -233,10 +234,13 @@ def prepare_batch_features(batch, config):
 
 
 def train_one_epoch(model, dataloader, criterion, optimizer, scaler, epoch, config):
-    """训练一个epoch - 修复bfloat16兼容性"""
+    """训练一个epoch - 修复bfloat16兼容性 + 添加计时"""
     model.train()
     total_loss = 0
     num_batches = len(dataloader)
+    
+    # 🆕 记录训练时间
+    epoch_start_time = time.time()
     
     pbar = tqdm(enumerate(dataloader), total=num_batches, desc=f"Epoch {epoch}")
     
@@ -281,12 +285,15 @@ def train_one_epoch(model, dataloader, criterion, optimizer, scaler, epoch, conf
         total_loss += loss.item() * config.ACCUMULATION_STEPS
         pbar.set_postfix({'loss': f'{loss.item() * config.ACCUMULATION_STEPS:.4f}'})
     
+    # 🆕 计算epoch耗时
+    epoch_time = time.time() - epoch_start_time
+    
     avg_loss = total_loss / num_batches
-    return avg_loss
+    return avg_loss, epoch_time  # 🆕 返回耗时
 
 def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, extract_features=True):
     """
-    验证并提取特征(用于可视化)
+    验证并提取特征(用于可视化) + 添加推理计时
     
     Args:
         model: 模型
@@ -328,6 +335,10 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
     total_loss = 0
     num_batches = len(dataloader)
     
+    # 🆕 记录推理时间
+    inference_times = []
+    num_samples = 0
+    
     # 🔧 修复: 确定autocast的dtype
     if config.USE_MIXED_PRECISION:
         if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
@@ -342,10 +353,21 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
             feature_dict = prepare_batch_features(batch, config)
             labels = batch['label'].to(config.DEVICE)
             
+            # 🆕 记录单个batch的推理时间
+            batch_start_time = time.time()
+            
             # 🔧 修复: 添加dtype参数
             with autocast('cuda', enabled=config.USE_MIXED_PRECISION, dtype=autocast_dtype):
                 logits = model(**feature_dict)
                 loss = criterion(logits, labels)
+            
+            # 🆕 同步GPU（确保推理完成）
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            
+            batch_time = time.time() - batch_start_time
+            inference_times.append(batch_time)
+            num_samples += labels.size(0)
             
             total_loss += loss.item()
             
@@ -435,7 +457,10 @@ def validate_and_extract(model, dataloader, criterion, fold, save_dir, config, e
     fold_data = {
         'y_true': y_true,
         'y_prob': y_prob[:, 1],
-        'fold': fold
+        'fold': fold,
+        # 🆕 添加推理时间统计
+        'avg_inference_time_per_batch': np.mean(inference_times) if inference_times else 0,
+        'total_samples': num_samples
     }
     
     return metrics, fold_data, feature_data
@@ -506,15 +531,19 @@ def train_one_fold(fold, train_dataset, val_dataset, experiment_dir, config):
     best_fold_data = None
     best_feature_data = None
     best_model_state = None
+    
+    # 🆕 记录每个epoch的训练时间
+    epoch_times = []
 
     for epoch in range(1, config.MAX_EPOCHS + 1):
         print(f"\n--- Epoch {epoch}/{config.MAX_EPOCHS} ---")
         
-        # 训练
-        train_loss = train_one_epoch(
+        # 训练（返回loss和时间）
+        train_loss, epoch_time = train_one_epoch(
             model, train_loader, criterion, optimizer, scaler, epoch, config
         )
-        print(f"Train Loss: {train_loss:.4f}")
+        epoch_times.append(epoch_time)
+        print(f"Train Loss: {train_loss:.4f}, Time: {epoch_time:.2f}s")
         
         # 验证
         val_metrics, fold_data, feature_data = validate_and_extract(
@@ -539,7 +568,10 @@ def train_one_fold(fold, train_dataset, val_dataset, experiment_dir, config):
             print(f"⏹️  早停触发! 最佳AUC: {best_val_auc:.4f}")
             break
     
+    # 🆕 计算平均epoch时间
+    avg_epoch_time = np.mean(epoch_times) if epoch_times else 0
     print(f"\n✅ Fold {fold} 训练完成! 最佳AUC: {best_val_auc:.4f}")
+    print(f"   📊 平均每epoch时间: {avg_epoch_time:.2f}s")
 
     # 🆕 加载最佳模型并提取特征
     if best_model_state is not None:
@@ -560,6 +592,10 @@ def train_one_fold(fold, train_dataset, val_dataset, experiment_dir, config):
         if config.SAVE_WEIGHTS and config.POOLING_METHOD == 'learnable_weight':
             fold_dir = os.path.join(experiment_dir, f'fold_{fold}')
             save_modality_weights(model, fold_dir)
+    
+    # 🆕 添加平均epoch时间到fold_data（移到if外面，确保总是执行）
+    if best_fold_data is not None:
+        best_fold_data['avg_epoch_time'] = avg_epoch_time
     
     return best_metrics, best_fold_data, best_feature_data
 
@@ -614,12 +650,14 @@ def main():
     for fold in range(config.N_FOLDS):
         train_dataset = RNADrugDataset(
             cv_splits[fold]['train_pairs'],
+            cv_splits[fold]['train_labels'],
             rna_features_dict,
             drug_features_dict
         )
         
         val_dataset = RNADrugDataset(
             cv_splits[fold]['val_pairs'],
+            cv_splits[fold]['val_labels'],
             rna_features_dict,
             drug_features_dict
         )
@@ -704,6 +742,78 @@ def main():
     print(f"   AUC-ROC: {aggregated['auc_roc']['mean']:.4f} ± {aggregated['auc_roc']['std']:.4f}")
     print(f"   PR-AUC:  {aggregated['pr_auc']['mean']:.4f} ± {aggregated['pr_auc']['std']:.4f}")
     print(f"   F1:      {aggregated['f1']['mean']:.4f} ± {aggregated['f1']['std']:.4f}")
+    
+    # 🆕 13. 资源消耗统计
+    print("\n" + "="*70)
+    print("💾 资源消耗统计（5-Fold CV平均值）")
+    print("="*70)
+    
+    # 🔍 调试：打印fold_data_list内容
+    print(f"\n🔍 调试信息:")
+    print(f"   - fold_data_list长度: {len(fold_data_list)}")
+    for i, fd in enumerate(fold_data_list):
+        if fd is not None:
+            print(f"   - Fold {i} keys: {list(fd.keys())}")
+        else:
+            print(f"   - Fold {i}: None")
+    
+    # 计算平均训练时间
+    avg_epoch_times = [fd.get('avg_epoch_time', 0) for fd in fold_data_list if fd and 'avg_epoch_time' in fd]
+    print(f"   - avg_epoch_times收集到: {len(avg_epoch_times)} 个值: {avg_epoch_times[:3] if len(avg_epoch_times) > 0 else []}")
+    
+    if avg_epoch_times:
+        mean_epoch_time = np.mean(avg_epoch_times)
+        print(f"\n   ⏱️  平均每epoch训练时间: {mean_epoch_time:.2f} 秒")
+    else:
+        print(f"\n   ⚠️  未收集到训练时间数据 (avg_epoch_time字段缺失)")
+    
+    # 计算平均推理时间
+    avg_inference_times = [fd.get('avg_inference_time_per_batch', 0) for fd in fold_data_list if fd and 'avg_inference_time_per_batch' in fd]
+    total_samples_list = [fd.get('total_samples', 0) for fd in fold_data_list if fd and 'total_samples' in fd]
+    
+    print(f"   - avg_inference_times收集到: {len(avg_inference_times)} 个值")
+    print(f"   - total_samples收集到: {len(total_samples_list)} 个值")
+    
+    if avg_inference_times:
+        mean_inference_time_per_batch = np.mean(avg_inference_times)
+        mean_inference_time_ms = mean_inference_time_per_batch * 1000  # 转换为毫秒
+        
+        # 计算吞吐量（样本/秒）
+        if total_samples_list and avg_inference_times:
+            total_inference_time = sum(avg_inference_times) * len(avg_inference_times)  # 近似总推理时间
+            total_samples = sum(total_samples_list)
+            throughput = total_samples / total_inference_time if total_inference_time > 0 else 0
+            
+            print(f"\n   ⏱️  平均每batch推理时间: {mean_inference_time_ms:.2f} 毫秒")
+            print(f"   🚀 推理吞吐量: {throughput:.2f} 样本/秒")
+    else:
+        print(f"\n   ⚠️  未收集到推理时间数据 (avg_inference_time_per_batch字段缺失)")
+    
+    # GPU显存峰值
+    if torch.cuda.is_available():
+        peak_memory_gb = torch.cuda.max_memory_allocated() / (1024**3)
+        print(f"   💾 GPU显存峰值: {peak_memory_gb:.2f} GB")
+        torch.cuda.reset_peak_memory_stats()
+    else:
+        print(f"   ⚠️  CUDA不可用，无法统计GPU显存")
+    
+    # 可训练参数量
+    print(f"\n   🔍 开始统计参数量...")
+    try:
+        model_temp = create_model()  # 创建临时模型来统计参数
+        trainable_params = sum(p.numel() for p in model_temp.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model_temp.parameters())
+        trainable_params_m = trainable_params / 1e6
+        
+        print(f"   🔢 可训练参数量: {trainable_params_m:.2f}M ({trainable_params:,})")
+        print(f"   🔢 总参数量: {total_params/1e6:.2f}M ({total_params:,})")
+        print(f"   📊 可训练参数占比: {100*trainable_params/total_params:.2f}%")
+        
+        del model_temp  # 释放临时模型
+    except Exception as e:
+        print(f"   ⚠️  参数统计出错: {str(e)}")
+        import traceback
+        print(f"   详细错误:\n{traceback.format_exc()}")
     
     print(f"\n💾 输出文件:")
     if config.SAVE_FEATURES:
