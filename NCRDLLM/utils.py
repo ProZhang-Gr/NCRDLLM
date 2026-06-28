@@ -131,15 +131,9 @@ def save_experiment_info(experiment_dir, config):
             'positive_pairs': config.POSITIVE_PAIRS_PATH,
         },
         
-        # 🆕 模态信息
+        # 模态信息（固定使用全部 6 个模态）
         'modalities': {
             'enabled': config.get_enabled_modalities(),
-            'rna_seq': config.USE_RNA_SEQ,
-            'rna_struct': config.USE_RNA_STRUCT,
-            'rna_disease': config.USE_RNA_DISEASE,
-            'drug_seq': config.USE_DRUG_SEQ,
-            'drug_struct': config.USE_DRUG_STRUCT,
-            'drug_disease': config.USE_DRUG_DISEASE,
         }
     }
     

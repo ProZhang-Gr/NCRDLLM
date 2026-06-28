@@ -278,30 +278,30 @@ class MultimodalLLM(nn.Module):
         print(f"   🔧 创建Adapters (目标维度: {config.LLM_HIDDEN_DIM}D)...")
         
         # RNA Adapters
-        if config.USE_RNA_SEQ:
+        if True:
             self.rna_seq_adapter = FeatureAdapter(config.RNA_SEQ_DIM, config.LLM_HIDDEN_DIM)
             print(f"      ✅ RNA序列Adapter: {config.RNA_SEQ_DIM}D → {config.LLM_HIDDEN_DIM}D")
         
-        if config.USE_RNA_STRUCT:
+        if True:
             self.rna_struct_adapter = FeatureAdapter(config.RNA_STRUCT_DIM, config.LLM_HIDDEN_DIM)
             print(f"      ✅ RNA结构Adapter: {config.RNA_STRUCT_DIM}D → {config.LLM_HIDDEN_DIM}D")
         
-        if config.USE_RNA_DISEASE:
+        if True:
             self.rna_disease_adapter = FeatureAdapter(
                 config.RNA_DISEASE_DIM, config.LLM_HIDDEN_DIM, adapter_type='disease'
             )
             print(f"      ✅ RNA疾病Adapter: {config.RNA_DISEASE_DIM}D → {config.LLM_HIDDEN_DIM}D (压缩)")
         
         # Drug Adapters
-        if config.USE_DRUG_SEQ:
+        if True:
             self.drug_seq_adapter = FeatureAdapter(config.DRUG_SEQ_DIM, config.LLM_HIDDEN_DIM)
             print(f"      ✅ Drug序列Adapter: {config.DRUG_SEQ_DIM}D → {config.LLM_HIDDEN_DIM}D")
         
-        if config.USE_DRUG_STRUCT:
+        if True:
             self.drug_struct_adapter = FeatureAdapter(config.DRUG_STRUCT_DIM, config.LLM_HIDDEN_DIM)
             print(f"      ✅ Drug结构Adapter: {config.DRUG_STRUCT_DIM}D → {config.LLM_HIDDEN_DIM}D")
         
-        if config.USE_DRUG_DISEASE:
+        if True:
             self.drug_disease_adapter = FeatureAdapter(
                 config.DRUG_DISEASE_DIM, config.LLM_HIDDEN_DIM, adapter_type='disease'
             )
@@ -314,14 +314,14 @@ class MultimodalLLM(nn.Module):
         # 创建Pooling层(如果需要)
         if config.POOLING_METHOD == 'learnable_weight':
             rna_modalities = sum([
-                config.USE_RNA_SEQ,
-                config.USE_RNA_STRUCT,
-                config.USE_RNA_DISEASE
+                True,
+                True,
+                True
             ])
             drug_modalities = sum([
-                config.USE_DRUG_SEQ,
-                config.USE_DRUG_STRUCT,
-                config.USE_DRUG_DISEASE
+                True,
+                True,
+                True
             ])
             
             if rna_modalities > 1:
@@ -438,18 +438,18 @@ class MultimodalLLM(nn.Module):
         # Step 1: 准备embeddings
         embeds_dict = {}
         
-        if config.USE_RNA_SEQ and rna_seq_features is not None:
+        if True and rna_seq_features is not None:
             embeds_dict[self.rna_seq_token_id] = self.rna_seq_adapter(rna_seq_features)
-        if config.USE_RNA_STRUCT and rna_struct_features is not None:
+        if True and rna_struct_features is not None:
             embeds_dict[self.rna_struct_token_id] = self.rna_struct_adapter(rna_struct_features)
-        if config.USE_RNA_DISEASE and rna_disease_features is not None:
+        if True and rna_disease_features is not None:
             embeds_dict[self.rna_disease_token_id] = self.rna_disease_adapter(rna_disease_features)
         
-        if config.USE_DRUG_SEQ and drug_seq_features is not None:
+        if True and drug_seq_features is not None:
             embeds_dict[self.drug_seq_token_id] = self.drug_seq_adapter(drug_seq_features)
-        if config.USE_DRUG_STRUCT and drug_struct_features is not None:
+        if True and drug_struct_features is not None:
             embeds_dict[self.drug_struct_token_id] = self.drug_struct_adapter(drug_struct_features)
-        if config.USE_DRUG_DISEASE and drug_disease_features is not None:
+        if True and drug_disease_features is not None:
             embeds_dict[self.drug_disease_token_id] = self.drug_disease_adapter(drug_disease_features)
         
         # Step 2: 通过LLM处理
@@ -533,18 +533,18 @@ class MultimodalLLM(nn.Module):
         # Step 1: 准备embeddings
         embeds_dict = {}
         
-        if config.USE_RNA_SEQ and rna_seq_features is not None:
+        if True and rna_seq_features is not None:
             embeds_dict[self.rna_seq_token_id] = self.rna_seq_adapter(rna_seq_features)
-        if config.USE_RNA_STRUCT and rna_struct_features is not None:
+        if True and rna_struct_features is not None:
             embeds_dict[self.rna_struct_token_id] = self.rna_struct_adapter(rna_struct_features)
-        if config.USE_RNA_DISEASE and rna_disease_features is not None:
+        if True and rna_disease_features is not None:
             embeds_dict[self.rna_disease_token_id] = self.rna_disease_adapter(rna_disease_features)
         
-        if config.USE_DRUG_SEQ and drug_seq_features is not None:
+        if True and drug_seq_features is not None:
             embeds_dict[self.drug_seq_token_id] = self.drug_seq_adapter(drug_seq_features)
-        if config.USE_DRUG_STRUCT and drug_struct_features is not None:
+        if True and drug_struct_features is not None:
             embeds_dict[self.drug_struct_token_id] = self.drug_struct_adapter(drug_struct_features)
-        if config.USE_DRUG_DISEASE and drug_disease_features is not None:
+        if True and drug_disease_features is not None:
             embeds_dict[self.drug_disease_token_id] = self.drug_disease_adapter(drug_disease_features)
         
         # Step 2: 添加CLS Token的占位embedding
@@ -563,19 +563,19 @@ class MultimodalLLM(nn.Module):
         
         else:  # 'learnable_weight' or 'attention'
             rna_features = []
-            if config.USE_RNA_SEQ and self.rna_seq_token_id in processed:
+            if True and self.rna_seq_token_id in processed:
                 rna_features.append(processed[self.rna_seq_token_id])
-            if config.USE_RNA_STRUCT and self.rna_struct_token_id in processed:
+            if True and self.rna_struct_token_id in processed:
                 rna_features.append(processed[self.rna_struct_token_id])
-            if config.USE_RNA_DISEASE and self.rna_disease_token_id in processed:
+            if True and self.rna_disease_token_id in processed:
                 rna_features.append(processed[self.rna_disease_token_id])
             
             drug_features = []
-            if config.USE_DRUG_SEQ and self.drug_seq_token_id in processed:
+            if True and self.drug_seq_token_id in processed:
                 drug_features.append(processed[self.drug_seq_token_id])
-            if config.USE_DRUG_STRUCT and self.drug_struct_token_id in processed:
+            if True and self.drug_struct_token_id in processed:
                 drug_features.append(processed[self.drug_struct_token_id])
-            if config.USE_DRUG_DISEASE and self.drug_disease_token_id in processed:
+            if True and self.drug_disease_token_id in processed:
                 drug_features.append(processed[self.drug_disease_token_id])
             
             # 池化

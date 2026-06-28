@@ -63,17 +63,17 @@ def save_raw_modality_features(batch_data, fold, save_dir, config):
     # 构建RNA特征DataFrame
     rna_data = {'RNA_ID': rna_ids, 'label': labels}
     
-    if config.USE_RNA_SEQ:
+    if True:
         rna_seq_features = np.array([item['rna_seq'] for item in batch_data])
         for i in range(rna_seq_features.shape[1]):
             rna_data[f'rna_seq_dim_{i}'] = rna_seq_features[:, i]
     
-    if config.USE_RNA_STRUCT:
+    if True:
         rna_struct_features = np.array([item['rna_struct'] for item in batch_data])
         for i in range(rna_struct_features.shape[1]):
             rna_data[f'rna_struct_dim_{i}'] = rna_struct_features[:, i]
     
-    if config.USE_RNA_DISEASE:
+    if True:
         rna_disease_features = np.array([item['rna_disease'] for item in batch_data])
         for i in range(rna_disease_features.shape[1]):
             rna_data[f'rna_disease_dim_{i}'] = rna_disease_features[:, i]
@@ -86,12 +86,12 @@ def save_raw_modality_features(batch_data, fold, save_dir, config):
     # 构建Drug特征DataFrame
     drug_data = {'CID': drug_ids, 'label': labels}
     
-    if config.USE_DRUG_SEQ:
+    if True:
         drug_seq_features = np.array([item['drug_seq'] for item in batch_data])
         for i in range(drug_seq_features.shape[1]):
             drug_data[f'drug_seq_dim_{i}'] = drug_seq_features[:, i]
     
-    if config.USE_DRUG_STRUCT:
+    if True:
         drug_graph_features = np.array([item['drug_graph'] for item in batch_data])
         drug_ecfp_features = np.array([item['drug_ecfp'] for item in batch_data])
         for i in range(drug_graph_features.shape[1]):
@@ -99,7 +99,7 @@ def save_raw_modality_features(batch_data, fold, save_dir, config):
         for i in range(drug_ecfp_features.shape[1]):
             drug_data[f'drug_ecfp_dim_{i}'] = drug_ecfp_features[:, i]
     
-    if config.USE_DRUG_DISEASE:
+    if True:
         drug_disease_features = np.array([item['drug_disease'] for item in batch_data])
         for i in range(drug_disease_features.shape[1]):
             drug_data[f'drug_disease_dim_{i}'] = drug_disease_features[:, i]

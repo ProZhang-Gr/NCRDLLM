@@ -45,152 +45,6 @@ from visualize import (
     plot_metrics_comparison
 )
 
-# ========== 🆕 损失函数定义 ==========
-class FocalLoss(nn.Module):
-    """
-    Focal Loss for addressing class imbalance
-    
-    🔧 修复: alpha现在正确支持类别权重
-    """
-    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
-        super(FocalLoss, self).__init__()
-        # alpha可以是:
-        # - 单个float: 正类权重, 负类权重自动为1-alpha
-        # - list/tuple: [负类权重, 正类权重]
-        if isinstance(alpha, (float, int)):
-            self.alpha = torch.tensor([1-alpha, alpha])
-        else:
-            self.alpha = torch.tensor(alpha)
-        self.gamma = gamma
-        self.reduction = reduction
-    
-    def forward(self, inputs, targets):
-        """
-        Args:
-            inputs: [B, 2] logits
-            targets: [B] labels (0 or 1)
-        """
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
-        pt = torch.exp(-ce_loss)
-        
-        # 根据目标类别选择对应的alpha
-        at = self.alpha.to(inputs.device)[targets]
-        focal_loss = at * (1 - pt) ** self.gamma * ce_loss
-        
-        if self.reduction == 'mean':
-            return focal_loss.mean()
-        elif self.reduction == 'sum':
-            return focal_loss.sum()
-        else:
-            return focal_loss
-
-class LabelSmoothingLoss(nn.Module):
-    """
-    Label Smoothing Loss
-    
-    🔧 改进: 使用更稳定的实现
-    """
-    def __init__(self, classes=2, smoothing=0.1):
-        super(LabelSmoothingLoss, self).__init__()
-        self.smoothing = smoothing
-        self.classes = classes
-        self.confidence = 1.0 - smoothing
-    
-    def forward(self, pred, target):
-        """
-        Args:
-            pred: [B, 2] logits
-            target: [B] labels (0 or 1)
-        """
-        log_probs = F.log_softmax(pred, dim=-1)
-        
-        with torch.no_grad():
-            # 构建平滑后的真实分布
-            true_dist = torch.zeros_like(pred)
-            true_dist.fill_(self.smoothing / (self.classes - 1))
-            true_dist.scatter_(1, target.unsqueeze(1), self.confidence)
-        
-        # 计算KL散度损失
-        loss = -torch.sum(true_dist * log_probs, dim=-1)
-        return loss.mean()
-
-def create_loss_function(config, train_dataset=None):
-    """
-    创建损失函数
-    
-    🔧 修复: weighted_ce的标签提取逻辑
-    """
-    if config.LOSS_TYPE == 'ce':
-        return nn.CrossEntropyLoss()
-    
-    elif config.LOSS_TYPE == 'focal':
-        return FocalLoss(alpha=config.FOCAL_ALPHA, gamma=config.FOCAL_GAMMA)
-    
-    elif config.LOSS_TYPE == 'label_smoothing':
-        return LabelSmoothingLoss(classes=2, smoothing=config.LABEL_SMOOTHING)
-    
-    elif config.LOSS_TYPE == 'weighted_ce':
-        if config.CLASS_WEIGHTS is None and train_dataset is not None:
-            # 🔧 修复: 直接使用dataset的labels属性
-            labels = train_dataset.labels  # ✅ 正确!
-            class_counts = torch.bincount(torch.tensor(labels))
-            class_weights = 1.0 / class_counts.float()
-            class_weights = class_weights / class_weights.sum() * 2  # 归一化
-            
-            print(f"   📊 自动计算类别权重: 负类={class_weights[0]:.4f}, 正类={class_weights[1]:.4f}")
-        else:
-            class_weights = torch.tensor(config.CLASS_WEIGHTS or [1.0, 1.0])
-        
-        return nn.CrossEntropyLoss(weight=class_weights.to(config.DEVICE))
-    
-    else:
-        raise ValueError(f"Unknown loss type: {config.LOSS_TYPE}")
-
-
-def create_optimizer(model, config):
-    """
-    创建优化器
-    
-    ✅ 这个函数是正确的,不需要修改
-    """
-    if config.OPTIMIZER_TYPE == 'adamw':
-        return torch.optim.AdamW(
-            model.parameters(),
-            lr=config.LEARNING_RATE,
-            weight_decay=config.WEIGHT_DECAY,
-            betas=config.ADAM_BETAS,
-            eps=config.ADAM_EPS
-        )
-    
-    elif config.OPTIMIZER_TYPE == 'adam':
-        return torch.optim.Adam(
-            model.parameters(),
-            lr=config.LEARNING_RATE,
-            weight_decay=config.WEIGHT_DECAY,
-            betas=config.ADAM_BETAS,
-            eps=config.ADAM_EPS
-        )
-    
-    elif config.OPTIMIZER_TYPE == 'sgd':
-        return torch.optim.SGD(
-            model.parameters(),
-            lr=config.LEARNING_RATE,
-            momentum=config.SGD_MOMENTUM,
-            weight_decay=config.WEIGHT_DECAY,
-            nesterov=config.SGD_NESTEROV
-        )
-    
-    elif config.OPTIMIZER_TYPE == 'rmsprop':
-        return torch.optim.RMSprop(
-            model.parameters(),
-            lr=config.LEARNING_RATE,
-            alpha=0.99,
-            eps=1e-8,
-            weight_decay=config.WEIGHT_DECAY
-        )
-    
-    else:
-        raise ValueError(f"Unknown optimizer type: {config.OPTIMIZER_TYPE}")
 
 def prepare_batch_features(batch, config):
     """
@@ -206,26 +60,26 @@ def prepare_batch_features(batch, config):
     feature_dict = {}
     
     # RNA特征
-    if config.USE_RNA_SEQ and 'rna_seq' in batch:
+    if True and 'rna_seq' in batch:
         feature_dict['rna_seq_features'] = batch['rna_seq'].to(config.DEVICE)
     
-    if config.USE_RNA_STRUCT and 'rna_struct' in batch:
+    if True and 'rna_struct' in batch:
         feature_dict['rna_struct_features'] = batch['rna_struct'].to(config.DEVICE)
     
-    if config.USE_RNA_DISEASE and 'rna_disease' in batch:
+    if True and 'rna_disease' in batch:
         feature_dict['rna_disease_features'] = batch['rna_disease'].to(config.DEVICE)
     
     # Drug特征
-    if config.USE_DRUG_SEQ and 'drug_seq' in batch:
+    if True and 'drug_seq' in batch:
         feature_dict['drug_seq_features'] = batch['drug_seq'].to(config.DEVICE)
     
-    if config.USE_DRUG_STRUCT:
+    if True:
         if 'drug_graph' in batch and 'drug_ecfp' in batch:
             drug_graph = batch['drug_graph'].to(config.DEVICE)
             drug_ecfp = batch['drug_ecfp'].to(config.DEVICE)
             feature_dict['drug_struct_features'] = torch.cat([drug_graph, drug_ecfp], dim=-1)
     
-    if config.USE_DRUG_DISEASE and 'drug_disease' in batch:
+    if True and 'drug_disease' in batch:
         feature_dict['drug_disease_features'] = batch['drug_disease'].to(config.DEVICE)
     
     return feature_dict
@@ -506,10 +360,15 @@ def train_one_fold(fold, train_dataset, val_dataset, experiment_dir, config):
     # 创建模型
     model = create_model()
     
-    # 损失函数和优化器
-    # 🆕 使用工厂函数创建损失函数和优化器
-    criterion = create_loss_function(config, train_dataset)
-    optimizer = create_optimizer(model, config)
+    # 损失函数和优化器（固定为交叉熵 + AdamW）
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config.LEARNING_RATE,
+        weight_decay=config.WEIGHT_DECAY,
+        betas=config.ADAM_BETAS,
+        eps=config.ADAM_EPS
+    )
     
 
     # 🔧 修复: 混合精度训练的GradScaler

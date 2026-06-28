@@ -471,38 +471,38 @@ class RNADrugDataset(Dataset):
         }
         
         # 添加RNA特征
-        if 'seq' in self.rna_features_dict and config.USE_RNA_SEQ:
+        if 'seq' in self.rna_features_dict and True:
             sample['rna_seq'] = torch.tensor(
                 self.rna_features_dict['seq'][rna_id], dtype=torch.float32
             )
         
-        if 'struct' in self.rna_features_dict and config.USE_RNA_STRUCT:
+        if 'struct' in self.rna_features_dict and True:
             sample['rna_struct'] = torch.tensor(
                 self.rna_features_dict['struct'][rna_id], dtype=torch.float32
             )
         
-        if 'disease' in self.rna_features_dict and config.USE_RNA_DISEASE:
+        if 'disease' in self.rna_features_dict and True:
             sample['rna_disease'] = torch.tensor(
                 self.rna_features_dict['disease'][rna_id], dtype=torch.float32
             )
         
         # 添加Drug特征
-        if 'seq' in self.drug_features_dict and config.USE_DRUG_SEQ:
+        if 'seq' in self.drug_features_dict and True:
             sample['drug_seq'] = torch.tensor(
                 self.drug_features_dict['seq'][drug_id], dtype=torch.float32
             )
         
-        if 'graph' in self.drug_features_dict and config.USE_DRUG_STRUCT:
+        if 'graph' in self.drug_features_dict and True:
             sample['drug_graph'] = torch.tensor(
                 self.drug_features_dict['graph'][drug_id], dtype=torch.float32
             )
         
-        if 'ecfp' in self.drug_features_dict and config.USE_DRUG_STRUCT:
+        if 'ecfp' in self.drug_features_dict and True:
             sample['drug_ecfp'] = torch.tensor(
                 self.drug_features_dict['ecfp'][drug_id], dtype=torch.float32
             )
         
-        if 'disease' in self.drug_features_dict and config.USE_DRUG_DISEASE:
+        if 'disease' in self.drug_features_dict and True:
             sample['drug_disease'] = torch.tensor(
                 self.drug_features_dict['disease'][drug_id], dtype=torch.float32
             )
@@ -524,24 +524,24 @@ def load_all_features():
     drug_features_dict = {}
     
     # 加载RNA特征
-    if config.USE_RNA_SEQ and os.path.exists(config.RNA_SEQ_FEATURE_PATH):
+    if True and os.path.exists(config.RNA_SEQ_FEATURE_PATH):
         rna_features_dict['seq'] = load_features(config.RNA_SEQ_FEATURE_PATH, 'RNA_ID')
         print(f"   ✅ RNA序列特征: {len(rna_features_dict['seq'])} 条")
     
-    if config.USE_RNA_STRUCT and os.path.exists(config.RNA_STRUCT_FEATURE_PATH):
+    if True and os.path.exists(config.RNA_STRUCT_FEATURE_PATH):
         rna_features_dict['struct'] = load_features(config.RNA_STRUCT_FEATURE_PATH, 'RNA_ID')
         print(f"   ✅ RNA结构特征: {len(rna_features_dict['struct'])} 条")
     
-    if config.USE_RNA_DISEASE and os.path.exists(config.RNA_DISEASE_FEATURE_PATH):
+    if True and os.path.exists(config.RNA_DISEASE_FEATURE_PATH):
         rna_features_dict['disease'] = load_features(config.RNA_DISEASE_FEATURE_PATH, 'RNA_ID')
         print(f"   ✅ RNA疾病特征(归一化): {len(rna_features_dict['disease'])} 条")
     
     # 加载Drug特征
-    if config.USE_DRUG_SEQ and os.path.exists(config.DRUG_SEQ_FEATURE_PATH):
+    if True and os.path.exists(config.DRUG_SEQ_FEATURE_PATH):
         drug_features_dict['seq'] = load_features(config.DRUG_SEQ_FEATURE_PATH, 'CID')
         print(f"   ✅ Drug序列特征: {len(drug_features_dict['seq'])} 条")
     
-    if config.USE_DRUG_STRUCT:
+    if True:
         if os.path.exists(config.DRUG_GRAPH_FEATURE_PATH):
             drug_features_dict['graph'] = load_features(config.DRUG_GRAPH_FEATURE_PATH, 'CID')
             print(f"   ✅ Drug图特征: {len(drug_features_dict['graph'])} 条")
@@ -550,7 +550,7 @@ def load_all_features():
             drug_features_dict['ecfp'] = load_features(config.DRUG_ECFP_FEATURE_PATH, 'CID')
             print(f"   ✅ Drug ECFP特征: {len(drug_features_dict['ecfp'])} 条")
     
-    if config.USE_DRUG_DISEASE and os.path.exists(config.DRUG_DISEASE_FEATURE_PATH):
+    if True and os.path.exists(config.DRUG_DISEASE_FEATURE_PATH):
         drug_features_dict['disease'] = load_features(config.DRUG_DISEASE_FEATURE_PATH, 'CID')
         print(f"   ✅ Drug疾病特征(归一化): {len(drug_features_dict['disease'])} 条")
     
