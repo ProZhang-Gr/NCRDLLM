@@ -35,8 +35,7 @@ NCRDLLM 的整体流程图如下：
 │   │   ├── lncRNA-drug                         # 文件结构同 miRNA-drug
 │   │   └── circRNA-drug                        # 文件结构同 miRNA-drug
 │   ├── download_model.py                       # 一键下载 LLaMA-3.2-3B 权重
-│   ├── config.py                               # 全局配置
-│   ├── args_parser.py                          # 命令行参数解析
+│   ├── config.py                               # 全局配置（所有超参数已在此固定）
 │   ├── dataset.py                              # 特征加载、负采样、K 折划分
 │   ├── model.py                                # FeatureAdapter / WeightedPooling / MultimodalLLM
 │   ├── utils.py                                # 指标、随机种子、早停
@@ -89,17 +88,15 @@ python download_model.py
 
 ### 第三步：运行模型
 
-在虚拟环境中运行主程序：
+所有超参数已固定在 `config.py` 中，直接运行主程序即可：
 
 ```bash
-python train.py \
-  --dataset miRNA-drug \
-  --use_rna_seq --use_rna_struct --use_rna_disease \
-  --use_drug_seq --use_drug_struct --use_drug_disease \
-  --use_lora --lora_r 64 --lora_alpha 64
+python train.py
 ```
 
-切换数据集时，把 `--dataset` 改为 `lncRNA-drug` 或 `circRNA-drug`。所有运行结果会保存在 `results` 目录下。
+这会以标准配置（六个模态全开、LoRA 微调、5 折交叉验证）在 miRNA-drug 数据集上训练。如需切换数据集，
+把 `config.py` 顶部的 `DATASET_NAME` 改为 `lncRNA-drug` 或 `circRNA-drug` 即可。所有运行结果会保存在
+`results` 目录下。
 
 ## 顺利运行的小贴士
 
@@ -107,10 +104,8 @@ python train.py \
 
 - 🗂️ **在 `NCRDLLM/NCRDLLM/` 目录里运行**（即 `train.py` 所在文件夹）。`download_model.py` 和 `train.py`
   都从这里启动，相对路径会自动对上。
-- 📋 **运行命令直接照抄即可。** 那些 `--use_*` 开关和 `--lora_r 64 --lora_alpha 64` 是标准配置，全部保留是
-  复现论文结果最省心的方式。
-- 🖥️ **需要一块支持 CUDA 的 GPU。** 显存 16 GB 左右比较从容；若遇到显存不足（OOM），在命令后加上
-  `--batch_size 32`（或 `16`）即可。
+- 🖥️ **需要一块支持 CUDA 的 GPU。** 显存 16 GB 左右比较从容；若遇到显存不足（OOM），把 `config.py` 里的
+  `BATCH_SIZE` 调小即可。
 - ⏳ **第一次运行启动会稍慢。** 训练开始前会先构建并缓存交叉验证划分，开头安静地停顿一下属于正常现象，
   稍等片刻即可。
 - 🔍 **看到 `未找到本地模型 / model not found`？** 说明跳过了第二步——先运行 `python download_model.py`

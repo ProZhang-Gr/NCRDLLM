@@ -37,8 +37,7 @@ The flow chart of NCRDLLM is as follows:
 │   │   ├── lncRNA-drug                         # Same file layout as miRNA-drug
 │   │   └── circRNA-drug                        # Same file layout as miRNA-drug
 │   ├── download_model.py                       # One-click LLaMA-3.2-3B weight downloader
-│   ├── config.py                               # Global configuration
-│   ├── args_parser.py                          # Command-line argument parsing
+│   ├── config.py                               # Global configuration (all hyper-parameters fixed here)
 │   ├── dataset.py                              # Feature loading, negative sampling, K-fold splitting
 │   ├── model.py                                # FeatureAdapter / WeightedPooling / MultimodalLLM
 │   ├── utils.py                                # Metrics, seeding, early stopping
@@ -95,18 +94,15 @@ The weights (LLaMA-3.2-3B-Instruct, a few GB, resumable) are saved to
 
 ### Step 3: Run the Model
 
-Run the main script in the virtual environment:
+All hyper-parameters are already fixed in `config.py`, so simply run the main script:
 
 ```bash
-python train.py \
-  --dataset miRNA-drug \
-  --use_rna_seq --use_rna_struct --use_rna_disease \
-  --use_drug_seq --use_drug_struct --use_drug_disease \
-  --use_lora --lora_r 64 --lora_alpha 64
+python train.py
 ```
 
-To switch datasets, change `--dataset` to `lncRNA-drug` or `circRNA-drug`. All results of the operation will
-be saved in the `results` directory.
+This runs the standard configuration (all six modalities, LoRA fine-tuning, 5-fold cross-validation) on the
+miRNA-drug dataset. To switch datasets, change `DATASET_NAME` at the top of `config.py` to `lncRNA-drug` or
+`circRNA-drug`. All results are saved in the `results` directory.
 
 ## Tips for a Smooth Run
 
@@ -114,10 +110,8 @@ A few friendly notes to help you get it running the first time:
 
 - 🗂️ **Run from inside `NCRDLLM/NCRDLLM/`** (the folder that contains `train.py`). Both `download_model.py`
   and `train.py` should be launched from here so the paths line up automatically.
-- 📋 **Just copy the run command as-is.** The `--use_*` flags and `--lora_r 64 --lora_alpha 64` are part of
-  the standard setup — keeping them all is the easiest way to reproduce our results.
-- 🖥️ **A CUDA GPU is needed.** Around 16 GB of VRAM is comfortable; if you hit an out-of-memory error, simply
-  add `--batch_size 32` (or `16`) to the run command.
+- 🖥️ **A CUDA GPU is needed.** Around 16 GB of VRAM is comfortable; if you run out of memory, lower
+  `BATCH_SIZE` in `config.py`.
 - ⏳ **The first run takes a little longer to start.** It builds and caches the cross-validation splits before
   training begins, so a quiet pause at the start is normal — just give it a moment.
 - 🔍 **Seeing `未找到本地模型 / model not found`?** It just means Step 2 was skipped — run

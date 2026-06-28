@@ -10,7 +10,6 @@ from torch.cuda.amp import GradScaler  # 🔧 修复: 使用torch.cuda.amp.GradS
 from tqdm import tqdm
 import torch.nn.functional as F  # 🆕 添加这行
 from config import config
-from args_parser import parse_args
 from dataset import (
     load_all_features,
     load_positive_pairs,
@@ -605,8 +604,8 @@ def main():
     print("🚀 RNA-Drug Interaction Prediction with Multi-Modal LLM")
     print("="*70)
     
-    # 1. 解析命令行参数
-    parse_args()
+    # 1. 使用 config.py 中内置的标准配置（所有超参数均已固定）
+    config.update_paths()
     print(config)
     
     # 2. 设置随机种子

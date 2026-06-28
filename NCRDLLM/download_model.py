@@ -94,10 +94,7 @@ def main():
 
     print("\n🎉 一切就绪！现在在本目录下运行训练:")
     print("")
-    print("  python train.py --dataset miRNA-drug \\")
-    print("    --use_rna_seq --use_rna_struct --use_rna_disease \\")
-    print("    --use_drug_seq --use_drug_struct --use_drug_disease \\")
-    print("    --use_lora --lora_r 64 --lora_alpha 64")
+    print("  python train.py")
     print("")
     return 0
 
